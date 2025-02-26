@@ -36,3 +36,10 @@ export const Message = styled.p`
   color: #333;
   font-family: "Arial", sans-serif;
 `;
+export const ErrorMessage = styled.p`
+  font-size: 14px;
+  color: #d9534f;
+  margin-top: 10px;
+  font-weight: bold;
+  text-align: center;
+`;

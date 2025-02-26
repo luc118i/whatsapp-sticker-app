@@ -1,4 +1,3 @@
-// Components/ConfigScreen/index.tsx
 import { useState, useRef } from "react";
 import axios from "axios";
 import {
@@ -16,11 +15,25 @@ import { ConfigScreenProps } from "./types";
 const ConfigScreen = ({ image, onProceed }: ConfigScreenProps) => {
   const initialImage =
     image instanceof Blob ? URL.createObjectURL(image) : image;
-  const [processedImage, setProcessedImage] = useState<string>(initialImage);
+
   const [showBorder, setShowBorder] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const [processedImage, setProcessedImage] = useState<string | Blob>(
+    initialImage
+  );
+
+  const convertToBlob = async (imageSource: string | Blob): Promise<Blob> => {
+    return imageSource instanceof Blob
+      ? imageSource
+      : await fetch(imageSource).then((r) => r.blob());
+  };
+
+  const handleError = (err: unknown, customMessage: string) => {
+    const message = err instanceof Error ? err.message : "Erro desconhecido";
+    setError(`${customMessage}: ${message}`);
+  };
 
   const handleRemoveBackground = async () => {
     setIsLoading(true);
@@ -28,46 +41,65 @@ const ConfigScreen = ({ image, onProceed }: ConfigScreenProps) => {
 
     try {
       const formData = new FormData();
-      const file =
-        image instanceof Blob
-          ? image
-          : await fetch(image).then((r) => r.blob());
-      formData.append("image_file", file);
+      formData.append("image_file", await convertToBlob(image));
       formData.append("size", "auto");
 
-      const response = await axios.post(
+      const { data } = await axios.post(
         "https://api.remove.bg/v1.0/removebg",
         formData,
         {
-          headers: {
-            "X-Api-Key": import.meta.env.VITE_REMOVE_BG_API_KEY,
-          },
+          headers: { "X-Api-Key": import.meta.env.VITE_REMOVE_BG_API_KEY },
           responseType: "blob",
         }
       );
 
-      const imageUrl = URL.createObjectURL(response.data);
-      setProcessedImage(imageUrl);
+      setProcessedImage(URL.createObjectURL(data));
     } catch (err) {
-      setError(
-        `Erro ao remover fundo: ${
-          err instanceof Error ? err.message : "Erro desconhecido"
-        }`
-      );
+      handleError(err, "Erro ao remover fundo");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleProceed = () => {
-    // Passa a URL da figurinha processada para o componente pai
-    onProceed(processedImage);
+  const handleProceed = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("image_file", await convertToBlob(processedImage));
+
+      const { data } = await axios.post(
+        "http://localhost:5000/convert",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      if (data?.url) {
+        onProceed(data.url);
+      } else {
+        setError("Erro na conversão da imagem.");
+      }
+    } catch (err) {
+      handleError(err, "Erro ao converter imagem");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <Container>
       <PreviewWrapper ref={previewRef}>
-        <StickerPreview imageUrl={processedImage} showBorder={showBorder} />
+        <StickerPreview
+          imageUrl={
+            typeof processedImage === "string"
+              ? processedImage
+              : URL.createObjectURL(processedImage)
+          }
+          showBorder={showBorder}
+        />
 
         {isLoading && <LoadingOverlay>Processando...</LoadingOverlay>}
         {error && <ErrorMessage>{error}</ErrorMessage>}
