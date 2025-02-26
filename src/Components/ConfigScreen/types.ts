@@ -1,6 +1,6 @@
 // Components/ConfigScreen/types.ts
 export interface ConfigScreenProps {
-  image: File;
+  image: string;
   onBack: () => void;
   onProceed: (processedImage: string) => void;
 }

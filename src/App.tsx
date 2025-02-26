@@ -4,11 +4,11 @@ import ConfigScreen from "./Components/ConfigScreen";
 import SuccessScreen from "./Components/SuccessScreen";
 
 function App() {
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<string | null>(null);
   const [stickerUrl, setStickerUrl] = useState<string | null>(null);
 
-  const handleImageUpload = (file: File) => {
-    setImageFile(file);
+  const handleImageUpload = (dataUrl: string) => {
+    setImageFile(dataUrl);
   };
 
   const handleStickerCreated = (url: string) => {
@@ -16,8 +16,8 @@ function App() {
   };
 
   const handleBack = () => {
-    setImageFile(null); // Resetar a imagem
-    setStickerUrl(null); // Resetar a figurinha gerada
+    setImageFile(null);
+    setStickerUrl(null);
   };
 
   return (
@@ -27,7 +27,7 @@ function App() {
           <ImageUpload onImageUpload={handleImageUpload} />
         ) : (
           <ConfigScreen
-            image={imageFile}
+            image={imageFile as string}
             onBack={handleBack}
             onProceed={handleStickerCreated}
           />
